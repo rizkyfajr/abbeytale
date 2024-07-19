@@ -17,8 +17,16 @@ class DatabaseSeeder extends Seeder
 
         User::factory()->create([
             'name' => 'admin',
-            'email' => 'test@example.com',
-            'password' => bcrypt('admin123'),
+            'email' => 'admin@mail.com',
+            'is_admin' => '1',
+            'password' => bcrypt('admin'),
+        ]);
+
+        User::factory()->create([
+            'name' => 'pelanggan',
+            'email' => 'pelanggan@mail.com',
+            'is_admin' => '0',
+            'password' => bcrypt('pelanggan'),
         ]);
 
         StatusPegawai::factory()->create([

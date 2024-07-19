@@ -6,6 +6,7 @@ use App\Models\Pegawai;
 use App\Models\StatusPegawai;
 use App\Models\Bagian;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class PegawaiController extends Controller
 {

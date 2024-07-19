@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Bagian;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+
 
 class BagianController extends Controller
 {

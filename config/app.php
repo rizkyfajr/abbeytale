@@ -65,7 +65,9 @@ return [
     |
     */
 
-    'timezone' => env('APP_TIMEZONE', 'UTC'),
+    // 'timezone' => env('APP_TIMEZONE', 'UTC'),
+    'timezone' => 'Asia/Jakarta',
+
 
     /*
     |--------------------------------------------------------------------------
@@ -122,5 +124,14 @@ return [
         'driver' => env('APP_MAINTENANCE_DRIVER', 'file'),
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
+    // 'providers' => [
+    // // ... other providers
+    // Barryvdh\DomPDF\ServiceProvider::class,
+    // Illuminate\View\ViewServiceProvider::class,
 
+    // ],
+    'aliases' => [
+        // ... other aliases
+        'PDF' => Barryvdh\DomPDF\Facade\Pdf::class,
+    ],
 ];

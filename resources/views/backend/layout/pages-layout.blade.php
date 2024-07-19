@@ -10,7 +10,7 @@
     <meta name="author" content="">
 
     <title>@yield('pageTitle')</title>
-
+    <link rel="icon" type="image/x-icon" href="/frontend/images/logo.png">
     <!-- Custom fonts for this template-->
     <link href="/backend/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
     <link
@@ -44,7 +44,7 @@
             <!-- Nav Item - Dashboard -->
             <li class="nav-item active">
 
-                    <a class="nav-link" href="{{ route('backend-pages') }}">
+                    <a class="nav-link" href="{{ route('dashboard') }}">
                         <i class="fas fa-fw fa-tachometer-alt"></i>
                         <span>Dashboard</span>
                     </a>
@@ -64,15 +64,50 @@
                     <i class="fas fa-fw fa-user"></i>
                     <span>User Management</span>
                 </a>
+
                 <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
-                        <h6 class="collapse-header">Custom Components:</h6>
-                        <a class="collapse-item" href="{{ route('pegawai.index') }}">Pegawai</a>
-                        <a class="collapse-item" href="{{ route('bagian.index')}}">Bagian</a>
+                        <h6 class="collapse-header">Data Pelanggan:</h6>
+                        <a class="collapse-item" href="{{ route('customers.index') }}">Pelanggan</a>
                     </div>
                 </div>
             </li>
+            <div class="sidebar-heading">
+                Produk Order
+            </div>
+<li class="nav-item">
+            <a class="btn btn-link nav-link collapsed" href="{{ route('products.index') }}" aria-expanded="true">
+                <i class="fas fa-box fa-fw"></i>
+                <span>Produk</span>
+            </a>
+            <a class="btn btn-link nav-link collapsed" href="{{ route('product-types.index') }}" aria-expanded="true">
+                <i class="fas fa-tags fa-fw"></i>
+                <span>Jenis/Tipe Produk</span>
+            </a>
+            <a class="btn btn-link nav-link collapsed" href="{{ route('order-be.index') }}" aria-expanded="true">
+                <i class="fas fa-tags fa-fw"></i>
+                <span>Order Produk</span>
+            </a>
 
+            <div class="sidebar-heading">
+                Pengaturan
+            </div>
+
+            <a class="btn btn-link nav-link collapsed" href="{{ route('banner.index') }}" aria-expanded="true">
+                <i class="fas fa-book fa-fw"></i>
+                <span>Banner</span>
+            </a>
+
+            <a class="btn btn-link nav-link collapsed" href="{{ route('payment-method.index') }}" aria-expanded="true">
+                <i class="fas fa-book fa-fw"></i>
+                <span>Metode Pembayaran</span>
+            </a>
+
+            <a class="btn btn-link nav-link collapsed" href="{{ route('shipping_providers.index') }}" aria-expanded="true">
+                <i class="fas fa-book fa-fw"></i>
+                <span>Jasa Pengiriman</span>
+            </a>
+</li>
 
             <!-- Divider -->
             <hr class="sidebar-divider d-none d-md-block">
@@ -113,7 +148,7 @@
                                 data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 <span class="mr-2 d-none d-lg-inline text-gray-600 small">
                                     @auth
-                                        {{ Auth::user()->name }}
+                                    {{ auth()->user()->name }}
                                     @endauth
                                 </span>
                                 <img class="img-profile rounded-circle"
@@ -143,6 +178,7 @@
                         </li>
 
                     </ul>
+
 
                 </nav>
                 <!-- End of Topbar -->
