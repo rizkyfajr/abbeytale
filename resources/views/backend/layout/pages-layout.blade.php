@@ -107,6 +107,11 @@
                 <i class="fas fa-book fa-fw"></i>
                 <span>Jasa Pengiriman</span>
             </a>
+
+            <a class="btn btn-link nav-link collapsed" href="{{ route('discount.index') }}" aria-expanded="true">
+                <i class="fas fa-book fa-fw"></i>
+                <span>Discount</span>
+            </a>
 </li>
 
             <!-- Divider -->

@@ -8,6 +8,14 @@ use App\Models\Discount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use Rubix\ML\Classifiers\KNearestNeighbors;
+use Rubix\ML\Kernels\Distance\Euclidean;
+use Rubix\ML\Datasets\Labeled;
+use Rubix\ML\Clusterers\KMeans;
+use Rubix\ML\Datasets\Unlabeled;
+use Rubix\ML\Transformers\OneHotEncoder;
+use Rubix\ML\Exceptions\InvalidArgumentException;
+use Illuminate\Support\Facades\Log;
 
 class ProductController extends Controller
 {
@@ -36,7 +44,6 @@ class ProductController extends Controller
             'gambar' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        // Simpan gambar jika ada
         if ($request->hasFile('gambar')) {
             $imagePath = $request->file('gambar')->store('images', 'public');
             $validatedData['gambar'] = $imagePath;
@@ -53,10 +60,64 @@ class ProductController extends Controller
 
     public function show(Product $product)
     {
-        // Menggunakan Eager Loading untuk mengambil relasi
-        $product->load('productType'); // Load relasi 'productType' dan 'productStock'
+        try {
+            // Menggunakan Eager Loading untuk mengambil relasi
+            $product->load('productType');
 
-        return view('backend.products.show', compact('product'));
+            // Rekomendasi Produk (k-Means)
+            $products = Product::where('id', '!=', $product->id)->with('productType')->get();
+            $samples = [];
+            $labels = [];
+
+            foreach ($products as $p) {
+                try {
+                    $samples[] = $this->getFeatureVector($p);
+                    $labels[] = (string) $p->product_type_id;
+                } catch (InvalidArgumentException $e) {
+                    Log::error("Error getting feature vector for product {$p->id}: {$e->getMessage()}");
+                    continue;
+                }
+            }
+            $recommendedProducts = collect(); // Inisialisasi $recommendedProducts
+
+            if (!empty($samples)) {
+                $dataset = new Labeled($samples, $labels);
+
+                $transformer = new OneHotEncoder();
+                $dataset->apply($transformer);
+
+                $estimator = new KMeans(3);
+                $estimator->train($dataset);
+
+                try {
+                    $predictionDataset = new Unlabeled([$this->getFeatureVector($product)]);
+                    $productCluster = $estimator->predict($predictionDataset)[0];
+
+                    $recommendedProducts = Product::where('cluster', $productCluster)
+                        ->where('id', '!=', $product->id)
+                        ->get();
+                } catch (InvalidArgumentException $e) {
+                    Log::error("Error predicting recommendations for product {$product->id}: {$e->getMessage()}");
+
+                }
+            }
+        } catch (InvalidArgumentException $e) {
+            Log::error("Error predicting recommendations for product {$product->id}: {$e->getMessage()}");
+            $errorMessage = $e->getMessage();
+            $recommendedProductIds = [];
+        }
+
+        return view('backend.products.show', compact('product', 'recommendedProducts'));
+    }
+
+
+    // Fungsi untuk mengekstrak fitur produk
+    private function getFeatureVector(Product $product)
+    {
+        return [
+            $product->harga,
+            $product->product_type_id,
+        ];
     }
 
     public function edit(Product $product)
