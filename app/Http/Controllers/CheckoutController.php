@@ -36,13 +36,13 @@ class CheckoutController extends Controller
                 return $item->product->harga * $item->quantity;
             });
 
-    // Inisialisasi total harga dengan menghitung harga produk setelah diskon
-    $totalHarga = 0;
-    foreach ($cartItems as $item) {
-        $product = $item->product;
-        $price = $this->calculateDiscountedPrice($product); // Menggunakan fungsi dari HomeFrontendController
-        $totalHarga += $price * $item->quantity;
-    }
+        // Inisialisasi total harga dengan menghitung harga produk setelah diskon
+        $totalHarga = 0;
+        foreach ($cartItems as $item) {
+            $product = $item->product;
+            $price = $this->calculateDiscountedPrice($product); // Menggunakan fungsi dari HomeFrontendController
+            $totalHarga += $price * $item->quantity;
+        }
 
         return view('frontend.checkout.index', compact('cartItems', 'totalHarga', 'shippingProviders', 'totalHarga'));
     }
@@ -85,86 +85,85 @@ class CheckoutController extends Controller
             'discount_code' => 'nullable|string|exists:discounts,code',
         ]);
 
-        $orderNumber = 'ORDER-' . strtoupper(Str::random(5));
+        $orderNumber = substr(date('Y'), -2) . strtoupper(Str::random(5));
 
         $cartItems = auth()->user()->cart;
-    $totalAmount = 0;
-    $totalDiscount = 0;
-    $finalAmount = 0;
-    // Periksa dan terapkan kode diskon jika valid
-    if ($request->discount_code) {
-        $discount = Discount::where('code', $request->discount_code)
-            ->active()
-            ->first();
+        $totalAmount = 0;
+        $totalDiscount = 0;
+        $finalAmount = 0;
+        // Periksa dan terapkan kode diskon jika valid
+        if ($request->discount_code) {
+            $discount = Discount::where('code', $request->discount_code)
+                ->active()
+                ->first();
 
-        if (!$discount) {
-            return back()->with('error', 'Kode diskon tidak valid.');
+            if (!$discount) {
+                return back()->with('error', 'Kode diskon tidak valid.');
+            }
+            $discountAmount = $discount->calculateDiscountAmount($totalAmount);
+            Session::put('discount', [
+                'id' => $discount->id,
+                'code' => $discount->code,
+                'amount' => $discountAmount,
+            ]);
+
+            $totalDiscount += $discountAmount; // Tambahkan total diskon
+        } else {
+            Session::forget('discount');
         }
-        $discountAmount = $discount->calculateDiscountAmount($totalAmount);
-        Session::put('discount', [
-            'id' => $discount->id,
-            'code' => $discount->code,
-            'amount' => $discountAmount,
+
+        // Hitung harga total dengan diskon per produk
+        foreach ($cartItems as $item) {
+            $product = $item->product;
+            $price = $product->discountedPrice ?: $product->harga; // Jika tidak ada diskon produk, gunakan harga asli
+
+            $totalAmount += $product->harga * $item->quantity; // Total harga sebelum diskon
+            $finalAmount += $price * $item->quantity; // Total harga setelah diskon
+        }
+
+        // Ambil data expedisi yang dipilih
+        $shippingProvider = ShippingProvider::find($request->input('shipping_method'));
+
+        if ($shippingProvider) {
+            $totalWeight = $cartItems->sum('quantity');
+            $shippingCost = $shippingProvider->price_per_kg * $totalWeight;
+
+            if ($totalAmount >= $shippingProvider->max_purchase) {
+                $shippingCost = max(0, $shippingCost - $shippingProvider->max_discount);
+            }
+        }
+
+        $finalAmount += $shippingCost; // Tambahkan ongkos kirim
+
+        // Buat pesanan baru dengan total harga setelah diskon dan ongkir
+        $order = Order::create([
+            'user_id' => auth()->id(),
+            'total_amount' => $finalAmount, // Gunakan totalAmount setelah diskon
+            'discount_amount' => $totalDiscount, // Tambahkan kolom untuk menyimpan total diskon
+            'shipping_address' => $validatedData['shipping_address'],
+            'order_number' => $orderNumber,
+            'payment_method' => $validatedData['payment_method'],
+            'shipping_cost' => $shippingCost
         ]);
 
-        $totalDiscount += $discountAmount; // Tambahkan total diskon
-    } else {
-        Session::forget('discount');
-    }
-
-    // Hitung harga total dengan diskon per produk
-    foreach ($cartItems as $item) {
-        $product = $item->product;
-        $price = $product->discountedPrice ?: $product->harga; // Jika tidak ada diskon produk, gunakan harga asli
-
-        $totalAmount += $product->harga * $item->quantity; // Total harga sebelum diskon
-        $finalAmount += $price * $item->quantity; // Total harga setelah diskon
-    }
-
-    // Ambil data expedisi yang dipilih
-    $shippingProvider = ShippingProvider::find($request->input('shipping_method'));
-
-    if ($shippingProvider) {
-        $totalWeight = $cartItems->sum('quantity');
-        $shippingCost = $shippingProvider->price_per_kg * $totalWeight;
-
-        if ($totalAmount >= $shippingProvider->max_purchase) {
-            $shippingCost = max(0, $shippingCost - $shippingProvider->max_discount);
+        // Simpan detail pesanan
+        foreach (auth()->user()->cart as $item) {
+            $order->items()->create([
+                'product_id' => $item->product_id,
+                'quantity' => $item->quantity,
+                'price' => $item->product->discountedPrice ?: $item->product->harga, // Gunakan harga diskon jika ada, atau harga asli jika tidak
+            ]);
         }
-    }
-
-    $finalAmount += $shippingCost; // Tambahkan ongkos kirim
-
-    // Buat pesanan baru dengan total harga setelah diskon dan ongkir
-    $order = Order::create([
-        'user_id' => auth()->id(),
-        'total_amount' => $finalAmount, // Gunakan totalAmount setelah diskon
-        'discount_amount' => $totalDiscount, // Tambahkan kolom untuk menyimpan total diskon
-        'shipping_address' => $validatedData['shipping_address'],
-        'order_number' => $orderNumber,
-        'payment_method' => $validatedData['payment_method'],
-        'shipping_cost' => $shippingCost
-    ]);
-
-    // Simpan detail pesanan
-    foreach (auth()->user()->cart as $item) {
-        $order->items()->create([
-            'product_id' => $item->product_id,
-            'quantity' => $item->quantity,
-            'price' => $item->product->discountedPrice ?: $item->product->harga, // Gunakan harga diskon jika ada, atau harga asli jika tidak
-        ]);
-    }
 
         // Kosongkan keranjang belanja
-    foreach (auth()->user()->cart as $item) {
-        $item->delete();
-    }
+        foreach (auth()->user()->cart as $item) {
+            $item->delete();
+        }
 
         // Arahkan ke halaman pembayaran (ganti dengan route yang sesuai)
         // return redirect()->route('frontend.payment.index', $order->id);
 
         return view('frontend.payment.index', compact('order'));
-
     }
 
     public function history()
@@ -219,17 +218,14 @@ class CheckoutController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error("Error checking discount: {$e->getMessage()}", [
-            'code' => $code,
-            'user_id' => auth()->id(),
-            'trace' => $e->getTraceAsString()
+                'code' => $code,
+                'user_id' => auth()->id(),
+                'trace' => $e->getTraceAsString()
             ]);
             return response()->json([
-            'valid' => false,
-            'message' => "Error checking discount: {$e->getMessage()}"
+                'valid' => false,
+                'message' => "Error checking discount: {$e->getMessage()}"
             ]);
         }
     }
-
-
-
 }

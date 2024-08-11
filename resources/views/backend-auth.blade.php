@@ -36,10 +36,17 @@
                     <form action="{{ route('login') }}" method="post">
                         @csrf
                         <div class="form-group">
-                            <input type="email" name="email" class="form-control" id="exampleInputEmail" aria-describedby="emailHelp" placeholder="Masukkan Alamat Email">
+                            <input type="email" name="email" class="form-control" id="exampleInputEmail" aria-describedby="emailHelp" placeholder="Masukkan Alamat Email" value="{{ old('email') }}">
+                            @error('email')
+                                <div class="text-danger">{{ $message }}</div>
+                            @enderror
                         </div>
+
                         <div class="form-group">
                             <input type="password" name="password" class="form-control" id="exampleInputPassword" placeholder="Massukan Password">
+                            @error('password')
+                                <div class="text-danger">{{ $message }}</div>
+                            @enderror
                         </div>
                         <button type="submit" class="btn btn-primary btn-block">Log In</button>
                     </form>
